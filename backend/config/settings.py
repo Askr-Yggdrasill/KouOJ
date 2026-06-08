@@ -1,8 +1,10 @@
 import os
 from pathlib import Path
 from datetime import timedelta
+from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR.parent/".env")
 
 SECRET_KEY = os.environ.get("KOUOJ_SECRET_KEY", "dev-only-secret-key")
 DEBUG = os.environ.get("KOUOJ_DEBUG", "1") == "1"
