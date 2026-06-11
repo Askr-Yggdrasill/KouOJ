@@ -40,7 +40,7 @@
         <router-link to="/problems">题目</router-link>
         <router-link to="/submissions">提交记录</router-link>
         <span v-if="authStore.user">
-          {{ authStore.user.username }}
+          <router-link to='/profile'>{{ authStore.user.nickname || authStore.user.username }}</router-link>
         </span>
 
         <button v-if="authStore.isLoggedIn" type="button" @click="handleLogout">

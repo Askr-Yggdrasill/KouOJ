@@ -1,9 +1,11 @@
+// 标签
 export interface Tag
 {
   id: number
   name: string
 }
 
+// 样例
 export interface SampleCase
 {
   id: number
@@ -12,6 +14,7 @@ export interface SampleCase
   order: number
 }
 
+// 题目列表元素
 export interface ProblemListItem
 {
   id: number
@@ -22,7 +25,7 @@ export interface ProblemListItem
   tags: Tag[]
 }
 
-
+// 题目详情，继承自题目列表的元素
 export interface ProblemDetail extends ProblemListItem
 {
   description: string
@@ -34,6 +37,7 @@ export interface ProblemDetail extends ProblemListItem
   updated_at: string
 }
 
+// 分页相应
 export interface PaginatedResponse<T>
 {
   count: number
@@ -42,6 +46,7 @@ export interface PaginatedResponse<T>
   results: T[]
 }
 
+// 用户信息
 export interface User
 {
   id: number
@@ -50,8 +55,12 @@ export interface User
   role: 'user'|'admin'
   solved_count: number
   submit_count: number
+  nickname: string
+  avatar_url: string
+  bio: string
 }
 
+// 登录请求与响应
 export interface LoginRequest
 {
   username: string
@@ -64,7 +73,10 @@ export interface LoginResponse
   refresh: string
 }
 
+// 提交结果状态
 export type SubmissionStatus = |'PENDING'|'JUDGING'|'ACCEPTED'|'WRONG_ANSWER'|'TIME_LIMIT_EXCEEDED'|'RUNTIME_ERROR'|'SYSTEM_ERROR'
+
+// 创建提交请求
 export interface CreateSubmissionRequest
 {
   problem: number
@@ -72,6 +84,7 @@ export interface CreateSubmissionRequest
   code: string
 }
 
+// 创建提交响应
 export interface CreateSubmissionResponse
 {
   id: number
@@ -80,6 +93,7 @@ export interface CreateSubmissionResponse
   code: string
 }
 
+// 评测结果
 export interface JudgeResult
 {
   id: number
@@ -91,6 +105,7 @@ export interface JudgeResult
   error_message: string
 }
 
+// 提交记录
 export interface Submission
 {
   id: number
@@ -121,4 +136,45 @@ export interface RegisterResponse
   id: number
   username: string
   email: string
+}
+
+// 热力图
+export interface HeatmapItem
+{
+  date: string
+  count: number
+}
+
+// 用户数据统计
+export interface UserStats
+{
+  submit_count: number
+  accepted_count: number
+  solved_count: number
+  difficulty:
+  {
+    easy: number
+    medium: number
+    hard: number
+  }
+  heatmap: HeatmapItem[]
+}
+
+// 用户数据更新
+export interface UpdateProfileRequest {
+  email: string
+  nickname: string
+  avatar_url: string
+  bio: string
+}
+
+// 密码更新
+export interface ChangePasswordRequest {
+  old_password: string
+  new_password: string
+}
+
+// 信息返回
+export interface MessageResponse {
+  detail: string
 }

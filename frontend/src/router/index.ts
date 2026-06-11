@@ -6,6 +6,7 @@ import ProblemDetailView from "../views/ProblemDetailView.vue";
 import SubmissionListView from "../views/SubmissionListView.vue";
 import SubmissionDetail from "../views/SubmissionDetail.vue";
 import RegisterView from "../views/RegisterView.vue";
+import ProfileView from "../views/ProfileView.vue";
 
 const router = createRouter({
   history: createWebHistory(),
@@ -58,6 +59,15 @@ const router = createRouter({
       meta:
       {
         guestOnly: true,
+      },
+    },
+    {
+      path: '/profile',
+      name: 'profile',
+      component: ProfileView,
+      meta:
+      {
+        requiresAuth: true
       },
     },
   ],

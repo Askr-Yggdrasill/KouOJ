@@ -10,6 +10,9 @@ class User(AbstractUser):
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.USER)
     solved_count = models.PositiveIntegerField(default=0)
     submit_count = models.PositiveIntegerField(default=0)
+    nickname = models.CharField(max_length=20, blank=True)
+    avatar_url = models.URLField(blank=True)
+    bio = models.TextField(max_length=200, blank=True)
 
     @property
     def is_admin(self):
