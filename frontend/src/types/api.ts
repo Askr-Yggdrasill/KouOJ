@@ -74,13 +74,16 @@ export interface LoginResponse
 }
 
 // 提交结果状态
-export type SubmissionStatus = |'PENDING'|'JUDGING'|'ACCEPTED'|'WRONG_ANSWER'|'TIME_LIMIT_EXCEEDED'|'RUNTIME_ERROR'|'SYSTEM_ERROR'
+export type SubmissionStatus = |'PENDING'|'JUDGING'|'ACCEPTED'|'WRONG_ANSWER'|'TIME_LIMIT_EXCEEDED'|'RUNTIME_ERROR'|'SYSTEM_ERROR'|'COMPILE_ERROR'
+
+// 语言种类
+export type Language = 'python3'|'c'|'cpp'
 
 // 创建提交请求
 export interface CreateSubmissionRequest
 {
   problem: number
-  language: 'python3'
+  language: Language
   code: string
 }
 
@@ -89,7 +92,7 @@ export interface CreateSubmissionResponse
 {
   id: number
   problem: number
-  language: 'python3'
+  language: Language
   code: string
 }
 
@@ -112,7 +115,7 @@ export interface Submission
   username: string
   problem: number
   problem_title: string
-  language: 'python3'
+  language: Language
   code: string
   status: SubmissionStatus
   score: number

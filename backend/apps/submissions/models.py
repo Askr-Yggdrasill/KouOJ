@@ -7,6 +7,8 @@ from apps.problems.models import Problem, TestCase
 class Submission(models.Model):
     class Language(models.TextChoices):
         PYTHON3 = "python3", "Python 3"
+        C = "c", "C"
+        CPP = "cpp", "c++"
 
     class Status(models.TextChoices):
         PENDING = "PENDING", "等待判题"
@@ -16,6 +18,7 @@ class Submission(models.Model):
         TIME_LIMIT_EXCEEDED = "TIME_LIMIT_EXCEEDED", "运行超时"
         RUNTIME_ERROR = "RUNTIME_ERROR", "运行错误"
         SYSTEM_ERROR = "SYSTEM_ERROR", "系统错误"
+        COMPILE_ERROR = "COMPILE_ERROR", "编译错误"
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="submissions")
     problem = models.ForeignKey(Problem, on_delete=models.CASCADE, related_name="submissions")

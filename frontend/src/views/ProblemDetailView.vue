@@ -3,7 +3,7 @@
   import { RouterLink, useRoute } from 'vue-router'
   import { getProblem } from '../api/problems'
   import { createSubmission, getSubmission } from '../api/submission'
-  import type { ProblemDetail, Submission } from '../types/api'
+  import type { ProblemDetail, Submission, Language } from '../types/api'
   import { getStatusClass, getStatusText } from '../utils/status'
   import { getDifficultyClass, getDifficultyText } from '../utils/problem'
 
@@ -11,6 +11,7 @@
   const problem = ref<ProblemDetail | null>(null)
   const loading = ref(false)
   const errorMessage = ref('')
+  const submitLanguage = ref<Language>('cpp')
 
   const code = ref('')
   const submitting = ref(false)
@@ -83,7 +84,7 @@
       const response = await createSubmission(
         {
           problem: problem.value.id,
-          language: 'python3',
+          language: submitLanguage.value,
           code: code.value,
         }
       )
@@ -160,6 +161,11 @@
       </section>
       <section>
         <h2>提交代码</h2>
+        <select v-model="submitLanguage">
+          <option value="python3">Python3</option>
+          <option value="c">C</option>
+          <option value="cpp">C++</option>
+        </select>
         <textarea v-model="code" rows="10" style="width: 100%; font-family: monospace;"></textarea>
         <div>
           <button type="button" :disabled="submitting" @click="handleSubmit">

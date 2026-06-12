@@ -44,9 +44,9 @@ class MeStatsView(generics.GenericAPIView):
         solved_count = solved_problems_ids.count()
 
         difficulty_stats = {
-            "easy": accepted_submissions.filter(problem__difficulty="easy").distinct().count(),
-            "medium": accepted_submissions.filter(problem__difficulty="medium").distinct().count(),
-            "hard": accepted_submissions.filter(problem__difficulty="hard").distinct().count(),
+            "easy": accepted_submissions.filter(problem__difficulty="easy").values("problem_id").distinct().count(),
+            "medium": accepted_submissions.filter(problem__difficulty="medium").values("problem_id").distinct().count(),
+            "hard": accepted_submissions.filter(problem__difficulty="hard").values("problem_id").distinct().count(),
         }
 
         heatmap_counts = defaultdict(int)
