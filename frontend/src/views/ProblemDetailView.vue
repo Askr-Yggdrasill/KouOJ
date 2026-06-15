@@ -3,20 +3,36 @@
   import { RouterLink, useRoute } from 'vue-router'
   import { getProblem } from '../api/problems'
   import { createSubmission, getSubmission } from '../api/submission'
-  import type { ProblemDetail, Submission, Language } from '../types/api'
+  import { createProblemSolution, getProblemSolution, deleteSolution, updateSolution } from '../api/solutions'
+  import type { ProblemDetail, Submission, Language, Solution } from '../types/api'
   import { getStatusClass, getStatusText } from '../utils/status'
   import { getDifficultyClass, getDifficultyText } from '../utils/problem'
+  import { useAuthStore } from '../stores/auth'
 
   const route = useRoute();
   const problem = ref<ProblemDetail | null>(null)
   const loading = ref(false)
   const errorMessage = ref('')
   const submitLanguage = ref<Language>('cpp')
-
+  // 提交部分
   const code = ref('')
   const submitting = ref(false)
   const submission = ref<Submission|null>(null)
   const submitError = ref('')
+  // 题解部分
+  const solutions = ref<Solution[]>([])
+  const solutionLoading = ref(false)
+  const solutionError = ref('')
+  const solutionTitle = ref('')
+  const solutionContent = ref('')
+  const solutionLanguage = ref('')
+  const solutionSubmitting = ref(false)
+  const authStore = useAuthStore() // 判断登录
+  const editingSolutionId = ref<number|null>(null)
+  const editTitle = ref('')
+  const editContent = ref('')
+  const editLanguage = ref('')
+
   let pollingTimer: number|null = null
   // 清除轮询
   function clearPolling()
@@ -37,6 +53,7 @@
     {
       const response = await getProblem(route.params.id as string)
       problem.value = response.data
+      await loadSolutions()
     }
     catch(error)
     {
@@ -97,6 +114,139 @@
     finally
     {
       submitting.value = false
+    }
+  }
+  // 加载题解列表
+  async function loadSolutions()
+  {
+    if (!problem.value) return 
+    solutionLoading.value = true
+    solutionError.value = ''
+    try
+    {
+      const response = await getProblemSolution(problem.value.id)
+      solutions.value = response.data.results
+    }
+    catch(error)
+    {
+      solutionError.value = '题解加载失败'
+    }
+    finally
+    {
+      solutionLoading.value = false
+    }
+  }
+
+  // 递交题解
+  async function handleCreateSolution()
+  {
+    if (!problem.value) return
+    solutionSubmitting.value = true
+    solutionError.value = ''
+    
+    if (!solutionTitle.value.trim())
+    {
+      solutionError.value = '请输入题解标题'
+      return
+    }
+    if (!solutionContent.value.trim())
+    {
+      solutionError.value = '请输入题解内容'
+      return 
+    }
+
+    solutionSubmitting.value = true
+    solutionError.value = ''
+    try
+    {
+      await createProblemSolution(problem.value.id, 
+      {
+        title: solutionTitle.value,
+        content: solutionContent.value,
+        language:solutionLanguage.value,
+        is_public:true,
+      })
+      solutionTitle.value = ''
+      solutionContent.value = ''
+      solutionLanguage.value = ''
+
+      await loadSolutions()
+    }
+    catch(error)
+    {
+      solutionError.value = '题解发布失败'
+    }
+    finally
+    {
+      solutionSubmitting.value = false
+    }
+  }
+  
+  // 删除题解
+  async function handleDeleteSolution(solutionId: number)
+  {
+    const confirmed = window.confirm('确定删除吗?')
+    if (!confirmed) return 
+    try
+    {
+      await deleteSolution(solutionId)
+      solutions.value = solutions.value.filter(
+        (solution) => solution.id !==solutionId,
+      )
+    }
+    catch (error)
+    {
+      solutionError.value = '删除题解失败'
+    }
+  }
+
+  // 编辑题解
+  function startEditSolution(solution: Solution)
+  {
+    editingSolutionId.value = solution.id
+    editTitle.value = solution.title
+    editContent.value = solution.content
+    editLanguage.value = solution.language
+    solutionError.value = ''
+  }
+  
+  function cancelEditSolution()
+  {
+    editingSolutionId.value = null
+    editTitle.value = ''
+    editContent.value = ''
+    editLanguage.value = ''
+  }
+
+  async function handleUpdateSolution(solutionId: number)
+  {
+    if (!editTitle.value.trim())
+    {
+      solutionError.value = '请输入题解标题'
+      return
+    }
+    if (!editContent.value.trim())
+    {
+      solutionError.value = '请输入题解内容'
+      return 
+    }
+    try
+    {
+      const response = await updateSolution(solutionId,
+      {
+        title: editTitle.value.trim(),
+        content: editContent.value.trim(),
+        language: editLanguage.value.trim(),
+        is_public: true,
+      })
+      solutions.value = solutions.value.map((solution)=>
+        solution.id === solutionId?response.data:solution,
+      )
+      cancelEditSolution()
+    }
+    catch(error)
+    {
+
     }
   }
 
@@ -200,6 +350,95 @@
               </ul>
             </div>
           </div>
+      </section>
+      <section>
+        <h2>题解</h2>
+        <div v-if="authStore.user">
+          <form @submit.prevent="handleCreateSolution">
+            <div>
+              <input v-model="solutionTitle" type="text" placeholder="题解标题"/>
+            </div>
+
+            <div>
+              <select v-model="solutionLanguage">
+                <option value="">不限定语言</option>
+                <option value="python3">Python3</option>
+                <option value="c">C</option>
+                <option value="cpp">C++</option>
+              </select>
+            </div>
+
+            <div>
+              <textarea v-model="solutionContent" rows="6" 
+              style="width: 100%; font-family: monospace;"></textarea>
+            </div>
+
+            <button type="submit" :disabled="solutionSubmitting">
+              {{ solutionSubmitting ? '发布中...' : '发布题解' }}
+            </button>
+          </form>
+        </div>
+        <p v-else>
+          登陆后才可以发布题解
+          <router-link to="/login">去登陆</router-link>
+        </p>
+        
+
+        <p v-if="solutionError">{{ solutionError }}</p>
+        <p v-if="solutionLoading">题解加载中...</p>
+
+        <div v-else>
+         <article v-for="solution in solutions" :key="solution.id">
+            <div v-if="editingSolutionId === solution.id">
+              <input v-model="editTitle" type="text" />
+
+              <select v-model="editLanguage">
+                <option value="">不限定语言</option>
+                <option value="python3">Python3</option>
+                <option value="c">C</option>
+                <option value="cpp">C++</option>
+              </select>
+
+              <textarea v-model="editContent" rows="6" style="width: 100%; font-family: monospace;"></textarea>
+
+              <button type="button" @click="handleUpdateSolution(solution.id)">
+                保存
+              </button>
+
+              <button type="button" @click="cancelEditSolution">
+                取消
+              </button>
+            </div>
+
+            <div v-else>
+              <h3>{{ solution.title }}</h3>
+
+              <div v-if="authStore.user && authStore.user.id === solution.author">
+                <button type="button" @click="startEditSolution(solution)">
+                  编辑
+                </button>
+
+                <button type="button" @click="handleDeleteSolution(solution.id)">
+                  删除
+                </button>
+              </div>
+
+              <p>
+                作者：{{ solution.author_username }}
+                <span v-if="solution.language">
+                  语言：{{ solution.language }}
+                </span>
+                <span>
+                  发布时间：{{ solution.created_at }}
+                </span>
+              </p>
+
+              <pre>{{ solution.content }}</pre>
+            </div>
+          </article>
+
+          <p v-if="solutions.length === 0">暂无题解</p>
+        </div>
       </section>
     </article>
   </main>

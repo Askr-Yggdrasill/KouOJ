@@ -211,3 +211,26 @@ export interface HomeData
   announcements: Announcement[]
   unfinished_problems: HomeProblem[]
 }
+
+// 题解相关
+export interface Solution 
+{
+  id: number
+  problem: number
+  author: number
+  author_username: string
+  title: string
+  content: string
+  language: string
+  is_public: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface CreateSolutionRequest 
+{
+  title: string
+  content: string
+  language: string
+  is_public?: boolean
+}
