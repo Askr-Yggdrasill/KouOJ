@@ -80,7 +80,6 @@ def docker_base_command(temp_dir):
         "gcc:13",
     ]
 
-
 def run_docker_command(temp_dir, command, input_data="", timeout_seconds=5):
     '''执行dockers命令'''
     started_at = time.perf_counter()
@@ -118,7 +117,6 @@ def run_docker_command(temp_dir, command, input_data="", timeout_seconds=5):
         time_used=time_used,
     )
 
-
 def get_source_name(language):
     '''源代码名'''
     if language == Submission.Language.C:
@@ -132,7 +130,6 @@ def get_compile_command(language):
         return "gcc main.c -O2 -std=c11 -o main"
     return "g++ main.cpp -O2 -std=c++17 -o main"
 
-
 def compile_c_code(temp_dir, language):
     '''编译c/cpp代码'''
     result = run_docker_command(
@@ -143,7 +140,6 @@ def compile_c_code(temp_dir, language):
     if result.status == Submission.Status.RUNTIME_ERROR:
         result.status = Submission.Status.COMPILE_ERROR
     return result
-
 
 def run_c_code(code, language, test_cases, timeout_seconds):
     '''运行c/cpp代码'''
@@ -166,7 +162,6 @@ def run_c_code(code, language, test_cases, timeout_seconds):
             results.append((test_case, result))
         return None, results
 
-
 def acquire_pending_submission():
     '''获取正在pending的代码，运行'''
     with transaction.atomic():
@@ -182,7 +177,6 @@ def acquire_pending_submission():
         submission.save(update_fields=["status"])
         return submission
 
-
 def create_judge_result(submission, test_case, run_result, status):
     '''创建格式化的评测结果'''
     JudgeResult.objects.create(
@@ -195,7 +189,6 @@ def create_judge_result(submission, test_case, run_result, status):
         error_message=run_result.error_message,
     )
 
-
 def judge_single_case(submission, test_case, run_result):
     '''判断单个测试点是否正确'''
     status = run_result.status
@@ -204,7 +197,6 @@ def judge_single_case(submission, test_case, run_result):
             status = Submission.Status.WRONG_ANSWER
     create_judge_result(submission, test_case, run_result, status)
     return status
-
 
 def judge_submission(submission):
     '''判题入口'''
@@ -276,7 +268,6 @@ def judge_submission(submission):
         update_fields=["status", "score", "time_used", "error_message", "judged_at"]
     )
     return submission
-
 
 def process_next_submission():
     submission = acquire_pending_submission()

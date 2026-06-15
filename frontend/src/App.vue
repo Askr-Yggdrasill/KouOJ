@@ -36,7 +36,7 @@
   <div>
     <header>
       <nav>
-        <div class="logo"><router-link to="/problems">KouOJ</router-link></div>
+        <div class="logo"><router-link to="/">KouOJ</router-link></div>
         <router-link to="/problems">题目</router-link>
         <router-link to="/submissions">提交记录</router-link>
         <span v-if="authStore.user">

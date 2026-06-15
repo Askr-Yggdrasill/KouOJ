@@ -24,6 +24,8 @@ INSTALLED_APPS = [
     "apps.problems",
     "apps.submissions",
     "apps.judge",
+    'apps.announcements',
+    "apps.home",
 ]
 
 MIDDLEWARE = [

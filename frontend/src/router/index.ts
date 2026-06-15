@@ -7,14 +7,11 @@ import SubmissionListView from "../views/SubmissionListView.vue";
 import SubmissionDetail from "../views/SubmissionDetail.vue";
 import RegisterView from "../views/RegisterView.vue";
 import ProfileView from "../views/ProfileView.vue";
+import HomeView from "../views/HomeView.vue";
 
 const router = createRouter({
   history: createWebHistory(),
   routes: [
-    {
-      path: '/',
-      redirect: '/problems',
-    },
     {
       path: '/login',
       name: 'login',
@@ -70,6 +67,11 @@ const router = createRouter({
         requiresAuth: true
       },
     },
+    {
+      path: '/',
+      name: 'home',
+      component: HomeView,
+    }
   ],
 })
 router.beforeEach((to)=>

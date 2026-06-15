@@ -164,7 +164,8 @@ export interface UserStats
 }
 
 // 用户数据更新
-export interface UpdateProfileRequest {
+export interface UpdateProfileRequest 
+{
   email: string
   nickname: string
   avatar_url: string
@@ -172,12 +173,41 @@ export interface UpdateProfileRequest {
 }
 
 // 密码更新
-export interface ChangePasswordRequest {
+export interface ChangePasswordRequest
+{
   old_password: string
   new_password: string
 }
 
 // 信息返回
-export interface MessageResponse {
+export interface MessageResponse 
+{
   detail: string
+}
+
+// 主页相关
+export interface HomeProblem
+{
+  id: number
+  title: string
+  difficulty: 'easy'|'medium'|'hard'
+  time_limit: number
+  memory_limit: number
+  tags: Tag[]
+}
+
+export interface Announcement
+{
+  id: number
+  title: string
+  content: string
+  created_at: string
+  is_pinned: boolean
+}
+
+export interface HomeData
+{
+  daily_problem: HomeProblem|null
+  announcements: Announcement[]
+  unfinished_problems: HomeProblem[]
 }
