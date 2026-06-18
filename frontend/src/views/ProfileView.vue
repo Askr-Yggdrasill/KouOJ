@@ -92,6 +92,7 @@
       fillProfileForm()
       editing.value = true
       saveMessage.value = "个人资料已更新"
+      editing.value = false
     }
     catch(error)
     {
@@ -121,6 +122,7 @@
       //  注册后重新登录
       authStore.logout()
       router.push('/login')
+      passwordEditing.value = false
     }
     catch(error)
     {
@@ -184,145 +186,440 @@
     <p v-if="loading">加载中...</p>
     <p v-else-if="errorMessage">{{ errorMessage }}</p>
 
-    <div v-else-if="user && stats">
-      <section class="profile-card">
-        <img :src="user.avatar_url||defaultAvatar" alt="avatar" class="avatar">
-        <div>
-          <h2>{{ user.nickname|| user.username }}</h2>
-          <p>@{{ user.username }}</p>
-          <p>{{ user.email }}</p>
-          <p>{{ user.bio||'' }}</p>
+  <div v-else-if="user && stats" class="profile-page">
+      <!-- 用户资料 -->
+      <section class="profile-header">
+        <div class="profile-identity">
+          <img :src="user.avatar_url || defaultAvatar" alt="用户头像" class="avatar" />
+
+          <div class="profile-info">
+            <h1>{{ user.nickname || user.username }}</h1>
+            <p class="username">@{{ user.username }}</p>
+            <p>{{ user.email }}</p>
+            <p class="bio">{{ user.bio || '这个人还没有填写个人简介。' }}</p>
+          </div>
         </div>
 
-        <button type="button" @click="editing=!editing">{{ editing?'取消编辑':'编辑资料' }}</button>
-        <button type="button" @click="passwordEditing=!passwordEditing">{{ passwordEditing?'取消修改':'修改密码' }}</button>
+        <div class="profile-actions">
+         <button type="button" @click="editing = true">
+            编辑资料
+          </button>
 
-        <h2>刷题统计</h2>
+          <button type="button" @click="passwordEditing = true">
+            修改密码
+          </button>
+        </div>
+      </section>
+
+      <!-- 刷题统计 -->
+      <section>
+        <div class="section-header">
+          <div>
+            <p class="eyebrow">个人数据统计</p>
+            <h2>刷题统计</h2>
+          </div>
+        </div>
+
         <div class="stats-grid">
-          <div>
+          <div class="stat-item">
             <strong>{{ stats.submit_count }}</strong>
-            <p>总提交</p>
+            <span>总提交</span>
           </div>
 
-          <div>
+          <div class="stat-item">
             <strong>{{ stats.accepted_count }}</strong>
-            <p>AC次数</p>
+            <span>AC 次数</span>
           </div>
-          <div>
+
+          <div class="stat-item">
             <strong>{{ stats.solved_count }}</strong>
-            <p>通过题目</p>
+            <span>通过题目</span>
           </div>
-          <div>
-              <strong>{{ stats.difficulty.easy }}</strong>
-              <p>简单</p>
+
+          <div class="stat-item easy">
+            <strong>{{ stats.difficulty.easy }}</strong>
+            <span>简单</span>
           </div>
-          <div>
-              <strong>{{ stats.difficulty.medium }}</strong>
-              <p>中等</p>
+
+          <div class="stat-item medium">
+            <strong>{{ stats.difficulty.medium }}</strong>
+            <span>中等</span>
           </div>
-          <div>
-              <strong>{{ stats.difficulty.hard }}</strong>
-              <p>困难</p>
+
+          <div class="stat-item hard">
+            <strong>{{ stats.difficulty.hard }}</strong>
+            <span>困难</span>
           </div>
         </div>
       </section>
+
+      <!-- 热力图 -->
       <section class="heatmap-section">
-        <div class="heatmap">
-          <div v-for="item in heatmapCells" :key="item.date" :class="['heatmap-cell', getHeatmapClass(item.count)]" :title="`${item.date}: ${item.count} AC`"></div>
+        <div class="section-header">
+          <div>
+            <p class="eyebrow">热力图</p>
+            <h2>最近刷题情况</h2>
+          </div>
+        </div>
+
+        <div class="heatmap-scroll">
+          <div class="heatmap">
+            <div v-for="item in heatmapCells" :key="item.date" :class="['heatmap-cell', getHeatmapClass(item.count)]"
+              :title="`${item.date}: ${item.count} AC`"></div>
+          </div>
         </div>
       </section>
 
-      <section v-if="editing">
-        <h2>编辑资料</h2>
-        <form @submit.prevent="handleSaveProfile">
-          <div>
-            <label>昵称</label>
-            <input v-model="profileForm.nickname" maxlength="20"> 
-          </div>
-          <div>
-            <label>邮箱</label>
-            <input v-model="profileForm.email" type="email">
-          </div>
-          <div>
-            <label>头像(输入url)</label>
-            <input v-model="profileForm.avatar_url"> 
-          </div>
-        
-          <div>
-            <label>个人简介</label>
-            <input v-model="profileForm.bio" maxlength="200" rows="4">
+    <div v-if="editing" class="modal-overlay" @click.self="editing = false">
+        <section class="modal-dialog">
+          <div class="modal-header">
+            <h2>编辑资料</h2>
+
+            <button class="close-button" type="button" aria-label="关闭" @click="editing = false">
+              ×
+            </button>
           </div>
 
-          <button type="submit" :disabled="saving">
-            {{ saving?'保存中...':'保存' }}
-          </button>
-        </form>
-      </section>
-      <p v-if="saveMessage">{{ saveMessage }}</p>
-      <section v-if="passwordEditing">
-        <h2>修改密码</h2>
-        <form @submit.prevent="handleChangePassword">
-          <div>
-            <label>旧密码</label>
-            <input v-model="passwordForm.old_password" type="password">
-          </div>
-          <div>
-            <label>新密码</label>
-            <input v-model="passwordForm.new_password" type="password">
-          </div>
-         <button type="submit" :disabled="changingPassword">
-            {{ changingPassword ? '修改中' : "修改密码" }}
-          </button>
-        </form>
-       
-        <p v-if="changingPassword">{{ passwordMessage }}</p>
+          <form class="settings-form" @submit.prevent="handleSaveProfile">
+            <label>
+              <span>昵称</span>
+              <input v-model="profileForm.nickname" maxlength="20" />
+            </label>
 
-      </section>
+            <label>
+              <span>邮箱</span>
+              <input v-model="profileForm.email" type="email" />
+            </label>
+
+            <label>
+              <span>头像 URL</span>
+              <input v-model="profileForm.avatar_url" type="url" />
+            </label>
+
+            <label>
+              <span>个人简介</span>
+              <textarea v-model="profileForm.bio" maxlength="200" rows="4"></textarea>
+            </label>
+
+            <p v-if="saveMessage">{{ saveMessage }}</p>
+
+            <div class="modal-actions">
+              <button type="button" @click="editing = false">
+                取消
+              </button>
+
+              <button class="primary-button" type="submit" :disabled="saving">
+                {{ saving ? '保存中...' : '保存资料' }}
+              </button>
+            </div>
+          </form>
+        </section>
+      </div>
+     <div v-if="passwordEditing" class="modal-overlay" @click.self="passwordEditing = false">
+        <section class="modal-dialog modal-dialog-small">
+          <div class="modal-header">
+            <h2>修改密码</h2>
+
+            <button class="close-button" type="button" aria-label="关闭" @click="passwordEditing = false">
+              ×
+            </button>
+          </div>
+
+          <form class="settings-form" @submit.prevent="handleChangePassword">
+            <label>
+              <span>旧密码</span>
+              <input v-model="passwordForm.old_password" type="password" autocomplete="current-password" />
+            </label>
+
+            <label>
+              <span>新密码</span>
+              <input v-model="passwordForm.new_password" type="password" autocomplete="new-password" />
+            </label>
+
+            <p v-if="passwordMessage">{{ passwordMessage }}</p>
+
+            <div class="modal-actions">
+              <button type="button" @click="passwordEditing = false">
+                取消
+              </button>
+
+              <button class="primary-button" type="submit" :disabled="changingPassword">
+                {{ changingPassword ? '修改中...' : '修改密码' }}
+              </button>
+            </div>
+          </form>
+        </section>
+      </div>
     </div>
-  
   </main>
 </template>
 
 <style scoped>
-img.avatar {
-  width: 144px;
-  height: 144px;
+.profile-page
+{
+  display: grid;
+  gap: 20px;
+}
+
+.profile-header
+{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+}
+
+.profile-identity
+{
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  min-width: 0;
+}
+
+.avatar
+{
+  width: 112px;
+  height: 112px;
+  border: 3px solid var(--surface);
   border-radius: 50%;
   object-fit: cover;
-}
-.heatmap-section {
-  margin-top: 24px;
-  text-align: center;
+  box-shadow: var(--shadow);
 }
 
-.heatmap {
+.profile-info h1
+{
+  margin: 0 0 6px;
+}
+
+.username
+{
+  color: var(--primary);
+}
+
+.bio
+{
+  max-width: 600px;
+  line-height: 1.7;
+}
+
+.profile-actions
+{
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.eyebrow
+{
+  margin: 0 0 4px;
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.section-header
+{
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.stats-grid
+{
   display: grid;
-  grid-template-columns: repeat(30, 14px);
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.stat-item
+{
+  display: grid;
+  gap: 6px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-muted);
+}
+
+.stat-item strong
+{
+  color: var(--text);
+  font-size: 28px;
+}
+
+.stat-item span
+{
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.stat-item.easy strong
+{
+  color: var(--success);
+}
+
+.stat-item.medium strong
+{
+  color: var(--warning);
+}
+
+.stat-item.hard strong
+{
+  color: var(--danger);
+}
+
+.heatmap-scroll
+{
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+
+.heatmap
+{
+  display: grid;
+  grid-template-columns: repeat(30, 24px);
   gap: 4px;
-  justify-content: center;
-  margin: 12px auto 0;
+  width: max-content;
+  margin: 0 auto;
 }
 
-.heatmap-cell {
-  width: 14px;
-  height: 14px;
+.heatmap-cell
+{
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--border);
   border-radius: 2px;
-  border: 1px solid #e5e7eb;
 }
 
-.heatmap-empty {
+.heatmap-empty
+{
   background: #f3f4f6;
 }
 
-.heatmap-low {
-  background: #b7eb8f;
+.heatmap-low
+{
+  background: #bbf7d0;
+  border-color: #86efac;
 }
 
-.heatmap-medium {
-  background: #52c41a;
+.heatmap-medium
+{
+  background: #4ade80;
+  border-color: #22c55e;
 }
 
-.heatmap-high {
-  background: #237804;
+.heatmap-high
+{
+  background: #15803d;
+  border-color: #166534;
+}
+.settings-form
+{
+  display: grid;
+  gap: 16px;
+  max-width: 680px;
+}
+
+.settings-form label
+{
+  display: grid;
+  gap: 6px;
+}
+
+.settings-form label span
+{
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.primary-button
+{
+  justify-self: start;
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+
+.modal-overlay
+{
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.modal-dialog
+{
+  width: min(620px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.modal-dialog-small
+{
+  width: min(460px, 100%);
+}
+
+.modal-header
+{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.modal-header h2
+{
+  margin: 0;
+}
+
+.close-button
+{
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.modal-actions
+{
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+}
+@media (max-width: 640px)
+{
+  .profile-header,
+  .profile-identity,
+  .section-header
+  {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .stats-grid
+  {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .profile-actions,
+  .profile-actions button
+  {
+    width: 100%;
+  }
 }
 </style>

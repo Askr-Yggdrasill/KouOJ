@@ -8,6 +8,7 @@ import SubmissionDetail from "../views/SubmissionDetail.vue";
 import RegisterView from "../views/RegisterView.vue";
 import ProfileView from "../views/ProfileView.vue";
 import HomeView from "../views/HomeView.vue";
+import ProblemSolutionsView from "../views/ProblemSolutionsView.vue";
 
 const router = createRouter({
   history: createWebHistory(),
@@ -30,6 +31,11 @@ const router = createRouter({
       path: '/problems/:id',
       name: 'problem-detail',
       component: ProblemDetailView,
+    },
+    {
+      path: '/problems/:id/solutions',
+      name: 'problem-solutions',
+      component: ProblemSolutionsView,
     },
     {
       path: '/submissions',

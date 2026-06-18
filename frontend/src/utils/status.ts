@@ -11,6 +11,7 @@ export function getStatusText(status: SubmissionStatus)
     TIME_LIMIT_EXCEEDED: 'Time Limit Exceeded',
     RUNTIME_ERROR: 'Runtime Error',
     SYSTEM_ERROR: 'System Error',
+    COMPILE_ERROR: 'Compile Error',
   }
   return map[status]
 }
@@ -26,6 +27,7 @@ export function getStatusClass(status: SubmissionStatus)
     TIME_LIMIT_EXCEEDED: 'status-tle',
     RUNTIME_ERROR: 'status-re',
     SYSTEM_ERROR: 'status-se',
+    COMPILE_ERROR: 'status-ce',
   }
   return map[status]
 }

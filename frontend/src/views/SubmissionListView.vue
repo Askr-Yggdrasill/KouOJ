@@ -101,115 +101,196 @@
   })
 </script>
 <template>
-  <main>
-    <h1>提交记录</h1>
-    <!-- 筛选提交记录 -->
-    <form @submit.prevent="loadSubmissions(1)">
-      <select v-model="selectedStatus" @change="loadSubmissions(1)">
-        <option value="">全部状态</option>
-        <option value="PENDING">Pending</option>
-        <option value="JUDGING">Judging</option>
-        <option value="ACCEPTED">Accepted</option>
-        <option value="WRONG_ANSWER">Wrong Anwser</option>
-        <option value="TIME_LIMIT_EXCEEDED">Time Limit Exceeded</option>
-        <option value="RUNTIME_ERROR">Runtime Error</option>
-        <option value="SYSTEM_ERROR">System</option>
-      </select>
-      <button type="button" @click="selectedStatus='';selectedProblem=undefined;loadSubmissions(1)">
-        重置
-      </button>
-        
-    </form>
+  <main class="submission-list-page">
+    <section class="submission-list-header">
+      <div>
+        <p class="eyebrow">Submissions</p>
+        <h1>提交记录</h1>
+        <p>查看提交状态、耗时、内存和判题结果。</p>
+      </div>
+    </section>
 
-    <p v-if="loading">加载中...</p>
-    <p v-else-if="errorMessage">{{ errorMessage }}</p>
-    <table v-else border="1" cellpadding="8">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>题目</th>
-          <th>语言</th>
-          <th>状态</th>
-          <th>得分</th>
-          <th>耗时</th>
-          <th>消耗内存</th>
-          <th>提交时间</th>
-        </tr>
-      </thead>
+    <section class="filter-panel">
+      <form class="filter-form" @submit.prevent="loadSubmissions(1)">
+        <select v-model="selectedStatus">
+          <option value="">全部状态</option>
+          <option value="PENDING">Pending</option>
+          <option value="JUDGING">Judging</option>
+          <option value="ACCEPTED">Accepted</option>
+          <option value="WRONG_ANSWER">Wrong Answer</option>
+          <option value="TIME_LIMIT_EXCEEDED">Time Limit Exceeded</option>
+          <option value="RUNTIME_ERROR">Runtime Error</option>
+          <option value="SYSTEM_ERROR">System Error</option>
+          <option value="COMPILE_ERROR">Compile Error</option>
+        </select>
 
-      <tbody>
-        <tr v-for="submission in submissions" :key="submission.id">
-          <td>
-            <router-link :to="`/submissions/${submission.id}`">
-              # {{ submission.id }}
-            </router-link>
-          </td>
-          <td>
-            <router-link :to="`/problems/${submission.problem}`">
-              {{ submission.problem }}
-            </router-link>
-          </td>
-          <td>{{ submission.language }}</td>
-          <td>
-            <span :class="getStatusClass(submission.status)">
-              {{ getStatusText(submission.status) }}
-            </span>
-          </td>
-          <td>{{ submission.score }}</td>
-          <td>{{ submission.time_used }}</td>
-          <td>{{ submission.memory_used }}</td>
-          <td>{{ submission.created_at }}</td>
-        </tr>
-      </tbody>
+        <button class="primary-button" type="submit">筛选</button>
 
-      
-    </table>
-    <div class="pagination">
+        <button
+          type="button"
+          @click="selectedStatus='';selectedProblem = undefined; loadSubmissions(1)" 
+          
+        >
+          重置
+        </button>
+      </form>
+    </section>
+
+    <section class="table-panel">
+      <p v-if="loading">加载中...</p>
+      <p v-else-if="errorMessage">{{ errorMessage }}</p>
+
+      <table v-else>
+        <thead>
+          <tr>
+            <th style="width: 90px;">ID</th>
+            <th style="width: 120px;">提交用户</th>
+            <th>题目</th>
+            <th style="width: 110px;">语言</th>
+            <th style="width: 170px;">状态</th>
+            <th style="width: 90px;">得分</th>
+            <th style="width: 110px;">耗时</th>
+            <th style="width: 110px;">内存</th>
+            <th style="width: 180px;">提交时间</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr v-for="submission in submissions" :key="submission.id">
+            <td>
+              <RouterLink class="submission-id" :to="`/submissions/${submission.id}`">
+                #{{ submission.id }}
+              </RouterLink>
+            </td>
+            <td>{{ submission.username }}</td>
+            <td>
+              <RouterLink :to="`/problems/${submission.problem}`">
+                {{ submission.problem_title || submission.problem }}
+              </RouterLink>
+            </td>
+
+            <td>{{ submission.language }}</td>
+
+            <td>
+              <span class="status-pill" :class="getStatusClass(submission.status)">
+                {{ getStatusText(submission.status) }}
+              </span>
+            </td>
+
+            <td>{{ submission.score }}</td>
+            <td>{{ submission.time_used }} ms</td>
+            <td>{{ submission.memory_used }} KB</td>
+            <td>{{ submission.created_at }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="pagination">
         <button type="button" :disabled="!hasPrevious" @click="goPreviousPage">
           上一页
         </button>
-        <span>第{{ currentPage }}页</span>
-        <span>共{{ totalCount }}页</span>
+
+        <span>第 {{ currentPage }} 页</span>
+        <span>共 {{ totalCount }} 条</span>
+
         <button type="button" :disabled="!hasNext" @click="goNextPage">
           下一页
         </button>
       </div>
+    </section>
   </main>
 </template>
 <style scoped>
-.status-pd,
-.status-jg 
-{
-  color: #409eff;
+.submission-list-page {
+  display: grid;
+  gap: 20px;
 }
 
-.status-ac 
-{
-  color: #2e7d32;
+.submission-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.filter-panel,
+.table-panel {
+  margin-top: 0;
+}
+
+.filter-form {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.filter-form select {
+  min-width: 220px;
+}
+
+.primary-button {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+
+.primary-button:hover {
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
+  color: white;
+}
+
+.submission-id {
+  font-weight: 600;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 4px 10px;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  font-size: 14px;
+}
+
+.status-pd,
+.status-jg {
+  color: #b42335;
+}
+
+.status-ac {
+  color: #16a34a;
   font-weight: 600;
 }
 
 .status-wa,
-.status-se 
-{
-  color: #c62828;
+.status-se,
+.status-ce {
+  color: #dc2626;
   font-weight: 600;
 }
 
-.status-re
-{
-  color: #8A2BE2;
+.status-re {
+  color: #7c3aed;
   font-weight: 600;
 }
 
-.status-tle 
-{
-  color: #ef6c00;
+.status-tle {
+  color: #d97706;
   font-weight: 600;
 }
+
 .pagination {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 12px;
   margin-top: 16px;
 }
@@ -217,5 +298,18 @@
 .pagination button:disabled {
   cursor: not-allowed;
   opacity: 0.5;
+}
+
+@media (max-width: 900px) {
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .pagination {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
 }
 </style>

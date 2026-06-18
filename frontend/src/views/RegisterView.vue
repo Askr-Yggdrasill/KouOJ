@@ -40,28 +40,62 @@
 </script>
 
 <template>
-  <main>
-    <h1>注册</h1>
-    <form @submit.prevent="handleRegister">
-      <div>
-        <label>用户名</label>
-        <input v-model="username">
-      </div>
-      <div>
-        <label>邮箱</label>
-        <input type="email" v-model="email">
-      </div>
-      <div>
-        <label>密码</label>
-        <input type="password" v-model="password">
+  <main class="auth-page">
+    <section class="auth-panel">
+      <div class="auth-header">
+        <RouterLink class="auth-brand" to="/">KouOJ</RouterLink>
+        <h1>创建账号</h1>
+        <p>又骗进来一个</p>
       </div>
 
-      <p v-if="errorMessage">{{ errorMessage }}</p>
-      <button type="submit" :disabled="loading">{{ loading?'注册中...':'注册' }}</button>
-    </form>
-    <p>
-      已有账号?
-      <router-link to="/login">去登录</router-link>
-    </p>
+      <form class="auth-form" @submit.prevent="handleRegister">
+        <label>
+          <span>用户名</span>
+          <input
+            v-model="username"
+            type="text"
+            autocomplete="username"
+            placeholder="请输入用户名"
+            required
+          />
+        </label>
+
+        <label>
+          <span>邮箱</span>
+          <input
+            v-model="email"
+            type="email"
+            autocomplete="email"
+            placeholder="请输入邮箱"
+            required
+          />
+        </label>
+
+        <label>
+          <span>密码</span>
+          <input
+            v-model="password"
+            type="password"
+            autocomplete="new-password"
+            placeholder="至少 6 个字符"
+            minlength="6"
+            required
+          />
+        </label>
+
+        <p v-if="errorMessage" class="error-message">
+          {{ errorMessage }}
+        </p>
+
+        <button class="primary-button submit-button" type="submit" :disabled="loading">
+          {{ loading ? '注册中...' : '注册' }}
+        </button>
+      </form>
+
+      <p class="auth-switch">
+        已有账号？
+        <RouterLink to="/login">返回登录</RouterLink>
+      </p>
+    </section>
   </main>
 </template>

@@ -33,55 +33,74 @@
 
 <!-- 导航栏 -->
 <template>
-  <div>
-    <header>
-      <nav>
-        <div class="logo"><router-link to="/">KouOJ</router-link></div>
-        <router-link to="/problems">题目</router-link>
-        <router-link to="/submissions">提交记录</router-link>
-        <span v-if="authStore.user">
-          <router-link to='/profile'>{{ authStore.user.nickname || authStore.user.username }}</router-link>
-        </span>
+  <header class="app-header">
+    <nav class="app-nav">
+      <RouterLink class="brand" to="/">KouOJ</RouterLink>
 
-        <button v-if="authStore.isLoggedIn" type="button" @click="handleLogout">
-          登出
-        </button>
-        <div v-else>
-          <router-link to="/login">登录 </router-link>
-          <router-link to="/register">注册</router-link>
-        </div>
-      </nav>
-    </header>
-  </div>
-  <router-view />
+      <div class="nav-links">
+        <RouterLink to="/problems">题目</RouterLink>
+        <RouterLink to="/submissions">提交记录</RouterLink>
+      </div>
+
+      <div class="nav-user">
+        <template v-if="authStore.user">
+          <RouterLink to="/profile">
+            {{ authStore.user.nickname || authStore.user.username }}
+          </RouterLink>
+          <button type="button" @click="handleLogout">退出</button>
+        </template>
+
+        <template v-else>
+          <RouterLink to="/login">登录</RouterLink>
+          <RouterLink to="/register">注册</RouterLink>
+        </template>
+      </div>
+    </nav>
+  </header>
+
+  <RouterView />
 </template>
 
 <!-- 导航栏样式 -->
 <style scoped>
-header
-{
-  border-bottom: 1px solid #ddd;
-  padding: 12px 16px;
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
 }
-nav
-{
+
+.app-nav {
+  width: min(1120px, calc(100% - 32px));
+  height: 56px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.brand {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.nav-links,
+.nav-user {
   display: flex;
   align-items: center;
   gap: 16px;
 }
-a
-{
-  color: #333;
-  text-decoration: none;
+
+.nav-links {
+  flex: 1;
 }
-a.router-link-active
-{
-  color: #409eff;
+
+a.router-link-active {
+  color: var(--primary);
   font-weight: 600;
-}
-button
-{
-  cursor: pointer;
 }
 
 </style>

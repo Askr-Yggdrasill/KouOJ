@@ -3,37 +3,36 @@
   import { RouterLink, useRoute } from 'vue-router'
   import { getProblem } from '../api/problems'
   import { createSubmission, getSubmission } from '../api/submission'
-  import { createProblemSolution, getProblemSolution, deleteSolution, updateSolution } from '../api/solutions'
-  import type { ProblemDetail, Submission, Language, Solution } from '../types/api'
-  import { getStatusClass, getStatusText } from '../utils/status'
+  import type { Language, ProblemDetail, Submission } from '../types/api'
   import { getDifficultyClass, getDifficultyText } from '../utils/problem'
-  import { useAuthStore } from '../stores/auth'
+  import { getStatusClass, getStatusText } from '../utils/status'
 
-  const route = useRoute();
+  // ide高亮
+  import { computed } from 'vue'
+  import Codemirror from 'vue-codemirror6'
+  import { python } from '@codemirror/lang-python'
+  import { cpp } from '@codemirror/lang-cpp'
+  import { oneDark } from '@codemirror/theme-one-dark'
+
+  const route = useRoute()
+
+  // 题目信息
   const problem = ref<ProblemDetail | null>(null)
   const loading = ref(false)
   const errorMessage = ref('')
+
+  // 提交代码相关
   const submitLanguage = ref<Language>('cpp')
-  // 提交部分
   const code = ref('')
   const submitting = ref(false)
-  const submission = ref<Submission|null>(null)
+  const submission = ref<Submission | null>(null)
   const submitError = ref('')
-  // 题解部分
-  const solutions = ref<Solution[]>([])
-  const solutionLoading = ref(false)
-  const solutionError = ref('')
-  const solutionTitle = ref('')
-  const solutionContent = ref('')
-  const solutionLanguage = ref('')
-  const solutionSubmitting = ref(false)
-  const authStore = useAuthStore() // 判断登录
-  const editingSolutionId = ref<number|null>(null)
-  const editTitle = ref('')
-  const editContent = ref('')
-  const editLanguage = ref('')
+  //可拖动布局
+  const leftWidth = ref(55)
+  const isResizing = ref(false)
+  // 轮询定时器
+  let pollingTimer: number | null = null
 
-  let pollingTimer: number|null = null
   // 清除轮询
   function clearPolling()
   {
@@ -43,19 +42,19 @@
       pollingTimer = null
     }
   }
-  // 获取问题
-  async function loadProblem() 
+
+  // 加载题目详情
+  async function loadProblem()
   {
-    loading.value = true;
+    loading.value = true
     errorMessage.value = ''
 
     try
     {
       const response = await getProblem(route.params.id as string)
       problem.value = response.data
-      await loadSolutions()
     }
-    catch(error)
+    catch (error)
     {
       errorMessage.value = '加载失败'
     }
@@ -65,33 +64,34 @@
     }
   }
 
-  // 轮询函数
+  // 轮询提交结果
   async function pollSubmission(id: number)
   {
     clearPolling()
+
     async function fetchSubmission()
     {
       const response = await getSubmission(id)
       submission.value = response.data
+
       if (!['PENDING', 'JUDGING'].includes(response.data.status))
       {
         clearPolling()
       }
     }
+
     await fetchSubmission()
-    pollingTimer = window.setInterval(()=>
-    {
-      fetchSubmission()
-    }, 1000)
+    pollingTimer = window.setInterval(fetchSubmission, 1000)
   }
 
-  // 提交函数
+  // 提交代码
   async function handleSubmit()
   {
     if (!problem.value)
     {
-      return ;
+      return
     }
+
     submitting.value = true
     submitError.value = ''
     submission.value = null
@@ -105,9 +105,10 @@
           code: code.value,
         }
       )
+
       await pollSubmission(response.data.id)
     }
-    catch(error)
+    catch (error)
     {
       submitError.value = '提交失败'
     }
@@ -116,380 +117,393 @@
       submitting.value = false
     }
   }
-  // 加载题解列表
-  async function loadSolutions()
+
+  // 拖动改变两侧宽度
+  function startResize()
   {
-    if (!problem.value) return 
-    solutionLoading.value = true
-    solutionError.value = ''
-    try
-    {
-      const response = await getProblemSolution(problem.value.id)
-      solutions.value = response.data.results
-    }
-    catch(error)
-    {
-      solutionError.value = '题解加载失败'
-    }
-    finally
-    {
-      solutionLoading.value = false
-    }
+    isResizing.value = true
+    window.addEventListener('mousemove', handleResize)
+    window.addEventListener('mouseup', stopResize)
   }
 
-  // 递交题解
-  async function handleCreateSolution()
+  function handleResize(event: MouseEvent)
   {
-    if (!problem.value) return
-    solutionSubmitting.value = true
-    solutionError.value = ''
-    
-    if (!solutionTitle.value.trim())
+    if (!isResizing.value)
     {
-      solutionError.value = '请输入题解标题'
       return
     }
-    if (!solutionContent.value.trim())
-    {
-      solutionError.value = '请输入题解内容'
-      return 
-    }
 
-    solutionSubmitting.value = true
-    solutionError.value = ''
-    try
-    {
-      await createProblemSolution(problem.value.id, 
-      {
-        title: solutionTitle.value,
-        content: solutionContent.value,
-        language:solutionLanguage.value,
-        is_public:true,
-      })
-      solutionTitle.value = ''
-      solutionContent.value = ''
-      solutionLanguage.value = ''
+    const windowWidth = window.innerWidth
+    const nextWidth = (event.clientX / windowWidth) * 100
 
-      await loadSolutions()
-    }
-    catch(error)
+    if (nextWidth < 35 || nextWidth > 70)
     {
-      solutionError.value = '题解发布失败'
-    }
-    finally
-    {
-      solutionSubmitting.value = false
-    }
-  }
-  
-  // 删除题解
-  async function handleDeleteSolution(solutionId: number)
-  {
-    const confirmed = window.confirm('确定删除吗?')
-    if (!confirmed) return 
-    try
-    {
-      await deleteSolution(solutionId)
-      solutions.value = solutions.value.filter(
-        (solution) => solution.id !==solutionId,
-      )
-    }
-    catch (error)
-    {
-      solutionError.value = '删除题解失败'
-    }
-  }
-
-  // 编辑题解
-  function startEditSolution(solution: Solution)
-  {
-    editingSolutionId.value = solution.id
-    editTitle.value = solution.title
-    editContent.value = solution.content
-    editLanguage.value = solution.language
-    solutionError.value = ''
-  }
-  
-  function cancelEditSolution()
-  {
-    editingSolutionId.value = null
-    editTitle.value = ''
-    editContent.value = ''
-    editLanguage.value = ''
-  }
-
-  async function handleUpdateSolution(solutionId: number)
-  {
-    if (!editTitle.value.trim())
-    {
-      solutionError.value = '请输入题解标题'
       return
     }
-    if (!editContent.value.trim())
-    {
-      solutionError.value = '请输入题解内容'
-      return 
-    }
-    try
-    {
-      const response = await updateSolution(solutionId,
-      {
-        title: editTitle.value.trim(),
-        content: editContent.value.trim(),
-        language: editLanguage.value.trim(),
-        is_public: true,
-      })
-      solutions.value = solutions.value.map((solution)=>
-        solution.id === solutionId?response.data:solution,
-      )
-      cancelEditSolution()
-    }
-    catch(error)
-    {
 
-    }
+    leftWidth.value = nextWidth
   }
 
-  onMounted(()=>
+  function stopResize()
+  {
+    isResizing.value = false
+    window.removeEventListener('mousemove', handleResize)
+    window.removeEventListener('mouseup', stopResize)
+  }
+
+  // 根据语言切换高亮
+  const editorExtensions = computed(()=>
+  {
+    if (submitLanguage.value==='python3')
+    {
+      return [python(), oneDark]
+    }
+    else if (submitLanguage.value==='c' || submitLanguage.value==='cpp')
+    {
+      return [cpp(), oneDark]
+    }
+  })
+
+  onMounted(() =>
   {
     loadProblem()
   })
 
-  onUnmounted(()=>
+  onUnmounted(() =>
   {
     clearPolling()
   })
 </script>
-<template>
-  <main>
-    <p v-if="loading">加载中...</p>
-    <p v-else-if="errorMessage"> {{ errorMessage }}</p> 
-    <article v-else-if="problem">
-      <h1>{{ problem.id }} {{ problem.title }}</h1>
-      <p>
-        难度：
-        <span :class="getDifficultyClass(problem.difficulty)">
-          {{ getDifficultyText(problem.difficulty) }}
-        </span>
-        时间限制：{{ problem.time_limit }} ms
-        内存限制：{{ problem.memory_limit }} MB
-      </p>
 
-      <router-link :to="`/submissions?problem=${problem.id}`">
-        提交记录
-      </router-link>
+<template>
+  <main class="problem-detail">
+    <p v-if="loading">加载中...</p>
+    <p v-else-if="errorMessage">{{ errorMessage }}</p>
+    <article
+        v-else-if="problem"
+        class="ide-layout"
+        :style="{ gridTemplateColumns: `${leftWidth}% 6px 1fr` }"
+      >
+      <div class="problem-pane">
+        <section class="problem-hero">
+          <div>
+            <h1>#{{ problem.id }} {{ problem.title }}</h1>
+
+            <div class="problem-meta">
+              <span :class="getDifficultyClass(problem.difficulty)">
+                {{ getDifficultyText(problem.difficulty) }}
+              </span>
+              <span>{{ problem.time_limit }} ms</span>
+              <span>{{ problem.memory_limit }} MB</span>
+            </div>
+          </div>
+
+          <div class="problem-actions">
+            <RouterLink class="secondary-button" :to="`/submissions?problem=${problem.id}`">
+              提交记录
+            </RouterLink>
+
+            <RouterLink class="secondary-button" :to="`/problems/${problem.id}/solutions`">
+              查看题解
+            </RouterLink>
+          </div>
+        </section>
 
       <section>
-        <h2>Tags:</h2>
-        <span v-for="tag in problem.tags">
-          {{ tag.name }}
-        </span>
+        <h2>标签</h2>
+        <div class="tag-list">
+          <span v-for="tag in problem.tags" :key="tag.id" class="tag">
+            {{ tag.name }}
+          </span>
+        </div>
       </section>
+
       <section>
         <h2>题目描述</h2>
         <p>{{ problem.description }}</p>
       </section>
+
       <section>
         <h2>输入描述</h2>
         <p>{{ problem.input_description }}</p>
       </section>
+
       <section>
         <h2>输出描述</h2>
         <p>{{ problem.output_description }}</p>
       </section>
+
       <section>
         <h2>样例</h2>
-        <div v-if="problem.sample_cases.length===0">
-          暂无样例
-        </div>
-        <div v-for="sample in problem.sample_cases" :key="sample.id">
+        <div v-if="problem.sample_cases.length === 0">暂无样例</div>
+
+        <div v-for="sample in problem.sample_cases" :key="sample.id" class="sample-case">
           <p>输入</p>
           <pre>{{ sample.input_data }}</pre>
           <p>输出</p>
           <pre>{{ sample.output_data }}</pre>
         </div>
       </section>
-      <section>
-        <h2>提交代码</h2>
-        <select v-model="submitLanguage">
-          <option value="python3">Python3</option>
-          <option value="c">C</option>
-          <option value="cpp">C++</option>
-        </select>
-        <textarea v-model="code" rows="10" style="width: 100%; font-family: monospace;"></textarea>
-        <div>
-          <button type="button" :disabled="submitting" @click="handleSubmit">
-            {{ submitting?'提交中...':'提交' }}
+      </div>
+
+      <div class="resize-handle" @mousedown="startResize"></div>
+
+      <div class="editor-pane">
+        <div class="editor-toolbar">
+          <h2>提交代码</h2>
+
+          <select v-model="submitLanguage">
+            <option value="python3">Python3</option>
+            <option value="c">C</option>
+            <option value="cpp">C++</option>
+          </select>
+
+          <button class="primary-button" type="button" :disabled="submitting" @click="handleSubmit">
+            {{ submitting ? '提交中...' : '提交' }}
           </button>
         </div>
+        
+        <Codemirror v-model="code" class="ide-editor" :extensions="editorExtensions"/>
+        
         <p v-if="submitError">{{ submitError }}</p>
-        
-          <div v-if="submission">
-            <h3>判题结果</h3>
-            <p>状态：
-              <span :class="getStatusClass(submission.status)">
-                {{ getStatusText(submission.status) }}
-              </span>
-            </p>
-            <p>得分：{{ submission.score }}</p>
-            <p>耗时：{{ submission.time_used }} ms</p>
-            <p v-if="submission.error_message">
-              错误信息：{{ submission.error_message }}
-            </p>
-        
-            <div v-if="submission.results.length > 0">
-              <h4>测试点结果</h4>
-              <ul>
-                <li v-for="result in submission.results" :key="result.id">
-                  #{{ result.testcase }} - 
-                  <span :class="getStatusClass(submission.status)">
-                    {{ getStatusText(submission.status) }}
-                  </span>
-                   - {{ result.time_used }} ms
-                </li>
-              </ul>
-            </div>
+
+        <div v-if="submission" class="judge-result">
+          <h3>判题结果</h3>
+          <p>
+            状态：
+            <span :class="getStatusClass(submission.status)">
+              {{ getStatusText(submission.status) }}
+            </span>
+          </p>
+          <p>得分：{{ submission.score }}</p>
+          <p>耗时：{{ submission.time_used }} ms</p>
+          <p v-if="submission.error_message">错误信息：{{ submission.error_message }}</p>
+
+          <div v-if="submission.results.length > 0">
+            <h4>测试点结果</h4>
+            <ul>
+              <li v-for="result in submission.results" :key="result.id">
+                #{{ result.testcase }} -
+                <span :class="getStatusClass(result.status)">
+                  {{ getStatusText(result.status) }}
+                </span>
+                - {{ result.time_used }} ms
+              </li>
+            </ul>
           </div>
-      </section>
-      <section>
-        <h2>题解</h2>
-        <div v-if="authStore.user">
-          <form @submit.prevent="handleCreateSolution">
-            <div>
-              <input v-model="solutionTitle" type="text" placeholder="题解标题"/>
-            </div>
-
-            <div>
-              <select v-model="solutionLanguage">
-                <option value="">不限定语言</option>
-                <option value="python3">Python3</option>
-                <option value="c">C</option>
-                <option value="cpp">C++</option>
-              </select>
-            </div>
-
-            <div>
-              <textarea v-model="solutionContent" rows="6" 
-              style="width: 100%; font-family: monospace;"></textarea>
-            </div>
-
-            <button type="submit" :disabled="solutionSubmitting">
-              {{ solutionSubmitting ? '发布中...' : '发布题解' }}
-            </button>
-          </form>
         </div>
-        <p v-else>
-          登陆后才可以发布题解
-          <router-link to="/login">去登陆</router-link>
-        </p>
-        
-
-        <p v-if="solutionError">{{ solutionError }}</p>
-        <p v-if="solutionLoading">题解加载中...</p>
-
-        <div v-else>
-         <article v-for="solution in solutions" :key="solution.id">
-            <div v-if="editingSolutionId === solution.id">
-              <input v-model="editTitle" type="text" />
-
-              <select v-model="editLanguage">
-                <option value="">不限定语言</option>
-                <option value="python3">Python3</option>
-                <option value="c">C</option>
-                <option value="cpp">C++</option>
-              </select>
-
-              <textarea v-model="editContent" rows="6" style="width: 100%; font-family: monospace;"></textarea>
-
-              <button type="button" @click="handleUpdateSolution(solution.id)">
-                保存
-              </button>
-
-              <button type="button" @click="cancelEditSolution">
-                取消
-              </button>
-            </div>
-
-            <div v-else>
-              <h3>{{ solution.title }}</h3>
-
-              <div v-if="authStore.user && authStore.user.id === solution.author">
-                <button type="button" @click="startEditSolution(solution)">
-                  编辑
-                </button>
-
-                <button type="button" @click="handleDeleteSolution(solution.id)">
-                  删除
-                </button>
-              </div>
-
-              <p>
-                作者：{{ solution.author_username }}
-                <span v-if="solution.language">
-                  语言：{{ solution.language }}
-                </span>
-                <span>
-                  发布时间：{{ solution.created_at }}
-                </span>
-              </p>
-
-              <pre>{{ solution.content }}</pre>
-            </div>
-          </article>
-
-          <p v-if="solutions.length === 0">暂无题解</p>
-        </div>
-      </section>
+      </div> 
     </article>
   </main>
 </template>
 
 <style scoped>
 .status-pd,
-.status-jg 
-{
-  color: #409eff;
+.status-jg {
+  color: #b42335;
 }
 
-.status-ac 
-{
+.status-ac {
   color: #2e7d32;
   font-weight: 600;
 }
 
 .status-wa,
-.status-se 
-{
+.status-se {
   color: #c62828;
   font-weight: 600;
 }
 
-.status-re
-{
-  color: #8A2BE2;
+.status-re {
+  color: #8a2be2;
   font-weight: 600;
 }
 
-.status-tle 
-{
+.status-tle {
   color: #ef6c00;
   font-weight: 600;
 }
-.difficulty-easy 
-{
+
+.difficulty-easy {
   color: #2e7d32;
-  margin-right: 8px;
 }
 
-.difficulty-medium 
-{
+.difficulty-medium {
   color: #ef6c00;
-  margin-right: 8px;
 }
 
-.difficulty-hard 
-{
+.difficulty-hard {
   color: #c62828;
-  margin-right: 8px;
+}
+
+.problem-layout {
+  display: grid;
+  gap: 20px;
+}
+
+.problem-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.problem-hero h1 {
+  margin-bottom: 10px;
+}
+
+.problem-meta,
+.problem-actions,
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.problem-meta span,
+.tag {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 4px 10px;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  font-size: 14px;
+}
+
+.primary-button {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+
+.primary-button:hover {
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
+  color: white;
+}
+
+.secondary-button {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 14px;
+  background: var(--surface);
+  white-space: nowrap;
+}
+
+.submit-panel select,
+.submit-panel textarea {
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.code-editor {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
+.sample-case {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.judge-result {
+  margin-top: 18px;
+}
+
+.problem-detail {
+  width: min(1440px, calc(100% - 24px));
+}
+
+.ide-layout {
+  display: grid;
+  gap: 0;
+  min-height: calc(100vh - 120px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.problem-pane,
+.editor-pane {
+  min-width: 0;
+  overflow: auto;
+  padding: 20px;
+}
+
+.problem-pane {
+  background: var(--surface);
+}
+
+.editor-pane {
+  display: flex;
+  flex-direction: column;
+  background: #2a1116;
+  color: #fff1f2;
+}
+
+.resize-handle {
+  width: 6px;
+  cursor: col-resize;
+  background: var(--border);
+}
+
+.resize-handle:hover {
+  background: var(--primary);
+}
+
+.editor-toolbar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.ide-editor {
+  flex: 1;
+  min-height: 360px;
+  border: 1px solid #71313b;
+  overflow: hidden;
+}
+
+.ide-editor :deep(.cm-editor) {
+  height: 100%;
+  min-height: 360px;
+  font-size: 14px;
+}
+
+.ide-editor :deep(.cm-scroller) {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
+.editor-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.editor-toolbar h2 {
+  margin: 0;
+  margin-right: auto;
+}
+
+.editor-toolbar select {
+  width: auto;
+}
+
+@media (max-width: 900px) {
+  .ide-layout {
+    display: block;
+  }
+
+  .resize-handle {
+    display: none;
+  }
+
+  .problem-pane,
+  .editor-pane {
+    max-height: none;
+  }
 }
 </style>
